@@ -66,6 +66,21 @@
             border: 2px solid #fff;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
+        
+        /* IBChart 캔버스 래퍼 */
+        .ibchart-canvas-wrapper {
+            width: 100%;
+            height: 400px;
+            position: relative;
+            margin: 20px 0;
+        }
+        
+        .ibchart-canvas-wrapper canvas {
+            width: 100% !important;
+            height: 100% !important;
+            max-width: 100%;
+            max-height: 100%;
+        }
     </style>
     <style>
         * {
@@ -254,8 +269,10 @@
 
         .chart-container {
             width: 100%;
-            height: 500px;
+            min-height: 500px;
             margin: 20px 0;
+            overflow: hidden;
+            position: relative;
         }
 
         .feedback-section {
@@ -865,7 +882,9 @@ ${fileContent.substring(0, 3000)}
             chartContainer.innerHTML = `
                 <div class="ibchart-container">
                     <div class="ibchart-title">${chartData.title || 'AI 생성 차트'}</div>
-                    <canvas id="ibchartCanvas" width="800" height="400"></canvas>
+                    <div class="ibchart-canvas-wrapper">
+                        <canvas id="ibchartCanvas"></canvas>
+                    </div>
                     <div class="ibchart-legend" id="ibchartLegend"></div>
                 </div>
             `;
@@ -895,6 +914,14 @@ ${fileContent.substring(0, 3000)}
                         options: {
                             responsive: true,
                             maintainAspectRatio: false,
+                            layout: {
+                                padding: {
+                                    top: 20,
+                                    right: 20,
+                                    bottom: 20,
+                                    left: 20
+                                }
+                            },
                             plugins: {
                                 legend: {
                                     display: false
@@ -1006,6 +1033,14 @@ ${fileContent.substring(0, 3000)}
                         options: {
                             responsive: true,
                             maintainAspectRatio: false,
+                            layout: {
+                                padding: {
+                                    top: 20,
+                                    right: 20,
+                                    bottom: 20,
+                                    left: 20
+                                }
+                            },
                             plugins: {
                                 legend: {
                                     display: false
@@ -1085,6 +1120,14 @@ ${fileContent.substring(0, 3000)}
                         options: {
                             responsive: true,
                             maintainAspectRatio: false,
+                            layout: {
+                                padding: {
+                                    top: 20,
+                                    right: 20,
+                                    bottom: 20,
+                                    left: 20
+                                }
+                            },
                             plugins: {
                                 legend: { display: false }
                             },
@@ -1108,6 +1151,13 @@ ${fileContent.substring(0, 3000)}
             
             // 범례 생성
             createIBChartLegend(chartData, ibchartColors, chartType);
+            
+            // 반응형 처리
+            window.addEventListener('resize', function() {
+                if (myChart) {
+                    myChart.resize();
+                }
+            });
         }
         
         // IBChart 스타일 범례 생성
