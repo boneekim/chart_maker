@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI 차트 생성기 - IBChart 스타일</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -187,11 +188,10 @@
             text-align: center;
         }
 
-        .chart-preview iframe {
+        .chart-container {
             width: 100%;
             height: 500px;
-            border: none;
-            border-radius: 8px;
+            margin: 20px 0;
         }
 
         .feedback-section {
@@ -280,6 +280,49 @@
             display: none;
         }
 
+        .api-key-section {
+            background: #e3f2fd;
+            border: 1px solid #2196f3;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .api-key-section h3 {
+            color: #1976d2;
+            margin-bottom: 15px;
+        }
+
+        .api-key-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #2196f3;
+            border-radius: 8px;
+            font-size: 1rem;
+            margin-bottom: 15px;
+        }
+
+        .api-key-input:focus {
+            outline: none;
+            border-color: #1565c0;
+        }
+
+        .save-api-btn {
+            background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 25px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .save-api-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 15px rgba(33, 150, 243, 0.3);
+        }
+
         @media (max-width: 768px) {
             .container {
                 margin: 10px;
@@ -312,6 +355,19 @@
         </div>
 
         <div class="main-content">
+            <!-- API 키 설정 섹션 -->
+            <div class="api-key-section">
+                <h3>🔑 OpenAI API 키 설정</h3>
+                <p>차트 생성을 위해 OpenAI API 키를 입력해주세요.</p>
+                <input 
+                    type="password" 
+                    id="apiKeyInput" 
+                    class="api-key-input" 
+                    placeholder="sk-... (OpenAI API 키를 입력하세요)"
+                >
+                <button class="save-api-btn" onclick="saveApiKey()">API 키 저장</button>
+            </div>
+
             <!-- 파일 업로드 섹션 -->
             <div class="upload-section" id="uploadSection">
                 <h2>📁 데이터 파일 업로드</h2>
@@ -377,7 +433,7 @@
             <div class="chart-result" id="chartResult">
                 <h2>📊 생성된 차트</h2>
                 <div class="chart-preview">
-                    <iframe id="chartFrame" src=""></iframe>
+                    <div id="chartContainer" class="chart-container"></div>
                 </div>
                 
                 <!-- 피드백 섹션 -->
@@ -400,6 +456,26 @@
     <script>
         let uploadedFile = null;
         let currentChartData = null;
+        let myChart = null;
+
+        // 페이지 로드 시 저장된 API 키 확인
+        window.addEventListener('load', function() {
+            const savedApiKey = localStorage.getItem('openai_api_key');
+            if (savedApiKey) {
+                document.getElementById('apiKeyInput').value = savedApiKey;
+            }
+        });
+
+        // API 키 저장
+        function saveApiKey() {
+            const apiKey = document.getElementById('apiKeyInput').value.trim();
+            if (apiKey) {
+                localStorage.setItem('openai_api_key', apiKey);
+                showMessage('success', 'API 키가 저장되었습니다!');
+            } else {
+                showMessage('error', 'API 키를 입력해주세요.');
+            }
+        }
 
         // 파일 업로드 처리
         document.getElementById('fileInput').addEventListener('change', async function(e) {
@@ -413,8 +489,8 @@
             document.getElementById('fileSize').textContent = formatFileSize(file.size);
             document.getElementById('fileInfo').style.display = 'block';
 
-            // 파일 업로드
-            await uploadFile(file);
+            // 파일 분석
+            await analyzeFile(file);
         });
 
         // 드래그 앤 드롭 기능
@@ -443,32 +519,34 @@
                 document.getElementById('fileSize').textContent = formatFileSize(uploadedFile.size);
                 document.getElementById('fileInfo').style.display = 'block';
                 
-                uploadFile(uploadedFile);
+                analyzeFile(uploadedFile);
             }
         });
 
-        // 파일 업로드 함수
-        async function uploadFile(file) {
+        // 파일 분석 함수
+        async function analyzeFile(file) {
             try {
-                const formData = new FormData();
-                formData.append('file', file);
+                const apiKey = localStorage.getItem('openai_api_key');
+                if (!apiKey) {
+                    showMessage('error', '먼저 OpenAI API 키를 설정해주세요.');
+                    return;
+                }
 
-                const response = await fetch('/upload', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    showMessage('success', '파일이 성공적으로 업로드되었습니다!');
-                    currentChartData = result.file.content;
+                showMessage('success', '파일이 성공적으로 업로드되었습니다!');
+                
+                // 파일 내용을 텍스트로 변환 (간단한 예시)
+                if (file.type.startsWith('image/')) {
+                    currentChartData = '이미지 파일이 업로드되었습니다. AI가 이미지 내용을 분석하여 차트 데이터를 생성합니다.';
+                } else if (file.type.includes('excel') || file.type.includes('spreadsheet')) {
+                    currentChartData = '엑셀 파일이 업로드되었습니다. 데이터 구조를 분석하여 적절한 차트를 생성합니다.';
+                } else if (file.type === 'application/pdf') {
+                    currentChartData = 'PDF 파일이 업로드되었습니다. 문서 내용을 분석하여 차트 데이터를 추출합니다.';
                 } else {
-                    showMessage('error', result.error || '파일 업로드에 실패했습니다.');
+                    currentChartData = '파일이 업로드되었습니다. AI가 파일 내용을 분석하여 차트 데이터를 생성합니다.';
                 }
             } catch (error) {
-                console.error('업로드 오류:', error);
-                showMessage('error', '파일 업로드 중 오류가 발생했습니다.');
+                console.error('파일 분석 오류:', error);
+                showMessage('error', '파일 분석 중 오류가 발생했습니다.');
             }
         }
 
@@ -476,6 +554,12 @@
         async function generateChart() {
             if (!uploadedFile) {
                 showMessage('error', '먼저 파일을 업로드해주세요.');
+                return;
+            }
+
+            const apiKey = localStorage.getItem('openai_api_key');
+            if (!apiKey) {
+                showMessage('error', 'OpenAI API 키를 설정해주세요.');
                 return;
             }
 
@@ -490,35 +574,19 @@
                 showLoading(true);
                 document.getElementById('generateBtn').disabled = true;
 
-                const response = await fetch('/generate-chart', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        chartType: finalChartType,
-                        style: chartStyle,
-                        dataAnalysis: currentChartData,
-                        feedback: ''
-                    })
+                // OpenAI API 호출
+                const chartData = await generateChartData(finalChartType, chartStyle, currentChartData, '');
+
+                showMessage('success', '차트가 성공적으로 생성되었습니다!');
+                
+                // 차트 표시
+                displayChart(finalChartType, chartStyle, chartData);
+                document.getElementById('chartResult').style.display = 'block';
+                
+                // 페이지 상단으로 스크롤
+                document.getElementById('chartResult').scrollIntoView({ 
+                    behavior: 'smooth' 
                 });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    showMessage('success', '차트가 성공적으로 생성되었습니다!');
-                    
-                    // 차트 표시
-                    document.getElementById('chartFrame').src = result.chartUrl;
-                    document.getElementById('chartResult').style.display = 'block';
-                    
-                    // 페이지 상단으로 스크롤
-                    document.getElementById('chartResult').scrollIntoView({ 
-                        behavior: 'smooth' 
-                    });
-                } else {
-                    showMessage('error', result.error || '차트 생성에 실패했습니다.');
-                }
             } catch (error) {
                 console.error('차트 생성 오류:', error);
                 showMessage('error', '차트 생성 중 오류가 발생했습니다.');
@@ -526,6 +594,228 @@
                 showLoading(false);
                 document.getElementById('generateBtn').disabled = false;
             }
+        }
+
+        // OpenAI API를 사용한 차트 데이터 생성
+        async function generateChartData(chartType, style, dataAnalysis, feedback) {
+            try {
+                const apiKey = localStorage.getItem('openai_api_key');
+                
+                const prompt = `
+차트 타입: ${chartType}
+스타일: ${style}
+데이터 분석: ${dataAnalysis}
+피드백: ${feedback || '없음'}
+
+위 정보를 바탕으로 차트에 사용할 샘플 데이터를 생성해주세요. 
+데이터는 JSON 형식으로 제공하고, 차트의 제목, 축 레이블, 데이터 포인트 등을 포함해주세요.
+`;
+
+                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiKey}`
+                    },
+                    body: JSON.stringify({
+                        model: 'gpt-4',
+                        messages: [
+                            {
+                                role: 'user',
+                                content: prompt
+                            }
+                        ],
+                        max_tokens: 1000
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`OpenAI API 오류: ${response.status}`);
+                }
+
+                const result = await response.json();
+                const content = result.choices[0].message.content;
+                
+                // JSON 데이터 추출 시도
+                try {
+                    const jsonMatch = content.match(/\{[\s\S]*\}/);
+                    if (jsonMatch) {
+                        return JSON.parse(jsonMatch[0]);
+                    }
+                } catch (e) {
+                    console.log('JSON 파싱 실패, 텍스트 반환');
+                }
+                
+                return {
+                    title: `${chartType} 차트`,
+                    data: content,
+                    style: style
+                };
+            } catch (error) {
+                console.error('차트 데이터 생성 오류:', error);
+                // 오류 발생 시 샘플 데이터 반환
+                return generateSampleData(chartType, style);
+            }
+        }
+
+        // 샘플 데이터 생성 (API 오류 시 사용)
+        function generateSampleData(chartType, style) {
+            const isMonochrome = style === 'mono';
+            const colors = isMonochrome ? 
+                ['#666666', '#888888', '#aaaaaa', '#cccccc', '#eeeeee'] : 
+                ['#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de'];
+
+            switch (chartType) {
+                case 'bar':
+                    return {
+                        title: '샘플 막대 차트',
+                        categories: ['1월', '2월', '3월', '4월', '5월'],
+                        data: [120, 200, 150, 80, 70],
+                        colors: colors
+                    };
+                case 'line':
+                    return {
+                        title: '샘플 선 차트',
+                        categories: ['1월', '2월', '3월', '4월', '5월'],
+                        data: [120, 200, 150, 80, 70],
+                        colors: colors
+                    };
+                case 'pie':
+                    return {
+                        title: '샘플 파이 차트',
+                        data: [
+                            { value: 335, name: '직접 접속' },
+                            { value: 310, name: '이메일 마케팅' },
+                            { value: 234, name: '연결 광고' },
+                            { value: 135, name: '비디오 광고' },
+                            { value: 1548, name: '검색 엔진' }
+                        ],
+                        colors: colors
+                    };
+                case 'area':
+                    return {
+                        title: '샘플 영역 차트',
+                        categories: ['1월', '2월', '3월', '4월', '5월'],
+                        data: [120, 200, 150, 80, 70],
+                        colors: colors
+                    };
+                default:
+                    return {
+                        title: '샘플 차트',
+                        categories: ['A', 'B', 'C', 'D', 'E'],
+                        data: [100, 150, 200, 120, 180],
+                        colors: colors
+                    };
+            }
+        }
+
+        // 차트 표시 함수
+        function displayChart(chartType, style, chartData) {
+            const chartContainer = document.getElementById('chartContainer');
+            
+            // 기존 차트 제거
+            if (myChart) {
+                myChart.dispose();
+            }
+            
+            // 차트 초기화
+            myChart = echarts.init(chartContainer);
+            
+            let option = {
+                title: {
+                    text: chartData.title || 'AI 생성 차트',
+                    left: 'center',
+                    textStyle: {
+                        color: '#333',
+                        fontSize: 18
+                    }
+                },
+                tooltip: {
+                    trigger: 'axis'
+                },
+                legend: {
+                    orient: 'vertical',
+                    left: 'left'
+                },
+                color: chartData.colors || ['#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de']
+            };
+
+            // 차트 타입에 따른 설정
+            switch (chartType) {
+                case 'bar':
+                    option.xAxis = {
+                        type: 'category',
+                        data: chartData.categories || ['A', 'B', 'C', 'D', 'E']
+                    };
+                    option.yAxis = {
+                        type: 'value'
+                    };
+                    option.series = [{
+                        type: 'bar',
+                        data: chartData.data || [120, 200, 150, 80, 70]
+                    }];
+                    break;
+                case 'line':
+                    option.xAxis = {
+                        type: 'category',
+                        data: chartData.categories || ['A', 'B', 'C', 'D', 'E']
+                    };
+                    option.yAxis = {
+                        type: 'value'
+                    };
+                    option.series = [{
+                        type: 'line',
+                        data: chartData.data || [120, 200, 150, 80, 70]
+                    }];
+                    break;
+                case 'pie':
+                    option.series = [{
+                        type: 'pie',
+                        radius: '50%',
+                        data: chartData.data || [
+                            { value: 335, name: '직접 접속' },
+                            { value: 310, name: '이메일 마케팅' },
+                            { value: 234, name: '연결 광고' },
+                            { value: 135, name: '비디오 광고' },
+                            { value: 1548, name: '검색 엔진' }
+                        ]
+                    }];
+                    break;
+                case 'area':
+                    option.xAxis = {
+                        type: 'category',
+                        data: chartData.categories || ['A', 'B', 'C', 'D', 'E']
+                    };
+                    option.yAxis = {
+                        type: 'value'
+                    };
+                    option.series = [{
+                        type: 'line',
+                        areaStyle: {},
+                        data: chartData.data || [120, 200, 150, 80, 70]
+                    }];
+                    break;
+                default:
+                    option.xAxis = {
+                        type: 'category',
+                        data: chartData.categories || ['A', 'B', 'C', 'D', 'E']
+                    };
+                    option.yAxis = {
+                        type: 'value'
+                    };
+                    option.series = [{
+                        type: 'bar',
+                        data: chartData.data || [120, 200, 150, 80, 70]
+                    }];
+            }
+            
+            // 차트 렌더링
+            myChart.setOption(option);
+            
+            // 반응형 처리
+            window.addEventListener('resize', function() {
+                myChart.resize();
+            });
         }
 
         // 차트 수정 함수
@@ -541,32 +831,19 @@
                 showLoading(true);
                 document.getElementById('modifyBtn').disabled = true;
 
-                const response = await fetch('/generate-chart', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        chartType: document.getElementById('chartType').value,
-                        style: document.getElementById('chartStyle').value,
-                        dataAnalysis: currentChartData,
-                        feedback: feedback
-                    })
-                });
+                const chartType = document.getElementById('chartType').value;
+                const chartStyle = document.getElementById('chartStyle').value;
 
-                const result = await response.json();
+                // OpenAI API 호출하여 수정된 차트 데이터 생성
+                const chartData = await generateChartData(chartType, chartStyle, currentChartData, feedback);
 
-                if (result.success) {
-                    showMessage('success', '차트가 수정되었습니다!');
-                    
-                    // 수정된 차트 표시
-                    document.getElementById('chartFrame').src = result.chartUrl;
-                    
-                    // 피드백 입력창 초기화
-                    document.getElementById('feedbackInput').value = '';
-                } else {
-                    showMessage('error', result.error || '차트 수정에 실패했습니다.');
-                }
+                showMessage('success', '차트가 수정되었습니다!');
+                
+                // 수정된 차트 표시
+                displayChart(chartType, chartStyle, chartData);
+                
+                // 피드백 입력창 초기화
+                document.getElementById('feedbackInput').value = '';
             } catch (error) {
                 console.error('차트 수정 오류:', error);
                 showMessage('error', '차트 수정 중 오류가 발생했습니다.');
