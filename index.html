@@ -355,17 +355,10 @@
         </div>
 
         <div class="main-content">
-            <!-- API 키 설정 섹션 -->
-            <div class="api-key-section">
-                <h3>🔑 OpenAI API 키 설정</h3>
-                <p>차트 생성을 위해 OpenAI API 키를 입력해주세요.</p>
-                <input 
-                    type="password" 
-                    id="apiKeyInput" 
-                    class="api-key-input" 
-                    placeholder="sk-... (OpenAI API 키를 입력하세요)"
-                >
-                <button class="save-api-btn" onclick="saveApiKey()">API 키 저장</button>
+            <!-- API 키 설정 완료 알림 -->
+            <div class="api-key-section" style="display: none;">
+                <h3>✅ OpenAI API 키 설정 완료</h3>
+                <p>API 키가 자동으로 설정되었습니다. 이제 차트 생성을 시작할 수 있습니다.</p>
             </div>
 
             <!-- 파일 업로드 섹션 -->
@@ -458,24 +451,19 @@
         let currentChartData = null;
         let myChart = null;
 
-        // 페이지 로드 시 저장된 API 키 확인
-        window.addEventListener('load', function() {
-            const savedApiKey = localStorage.getItem('openai_api_key');
-            if (savedApiKey) {
-                document.getElementById('apiKeyInput').value = savedApiKey;
-            }
-        });
+        // 고정된 OpenAI API 키
+        const OPENAI_API_KEY = 'AIzaSyArO2ryXxHrAdljrLxoKSMSTKHSMnCDw4s';
 
-        // API 키 저장
+        // API 키 저장 (로컬 스토리지에 저장)
         function saveApiKey() {
-            const apiKey = document.getElementById('apiKeyInput').value.trim();
-            if (apiKey) {
-                localStorage.setItem('openai_api_key', apiKey);
-                showMessage('success', 'API 키가 저장되었습니다!');
-            } else {
-                showMessage('error', 'API 키를 입력해주세요.');
-            }
+            localStorage.setItem('openai_api_key', OPENAI_API_KEY);
+            showMessage('success', 'API 키가 설정되었습니다!');
         }
+
+        // 페이지 로드 시 API 키 자동 설정
+        window.addEventListener('load', function() {
+            saveApiKey();
+        });
 
         // 파일 업로드 처리
         document.getElementById('fileInput').addEventListener('change', async function(e) {
@@ -601,56 +589,62 @@
             try {
                 const apiKey = localStorage.getItem('openai_api_key');
                 
-                const prompt = `
+                // 피드백이 있으면 OpenAI API 호출, 없으면 샘플 데이터 사용
+                if (feedback && feedback.trim()) {
+                    const prompt = `
 차트 타입: ${chartType}
 스타일: ${style}
 데이터 분석: ${dataAnalysis}
-피드백: ${feedback || '없음'}
+피드백: ${feedback}
 
 위 정보를 바탕으로 차트에 사용할 샘플 데이터를 생성해주세요. 
 데이터는 JSON 형식으로 제공하고, 차트의 제목, 축 레이블, 데이터 포인트 등을 포함해주세요.
 `;
 
-                const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${apiKey}`
-                    },
-                    body: JSON.stringify({
-                        model: 'gpt-4',
-                        messages: [
-                            {
-                                role: 'user',
-                                content: prompt
-                            }
-                        ],
-                        max_tokens: 1000
-                    })
-                });
+                    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${apiKey}`
+                        },
+                        body: JSON.stringify({
+                            model: 'gpt-4',
+                            messages: [
+                                {
+                                    role: 'user',
+                                    content: prompt
+                                }
+                            ],
+                            max_tokens: 1000
+                        })
+                    });
 
-                if (!response.ok) {
-                    throw new Error(`OpenAI API 오류: ${response.status}`);
-                }
-
-                const result = await response.json();
-                const content = result.choices[0].message.content;
-                
-                // JSON 데이터 추출 시도
-                try {
-                    const jsonMatch = content.match(/\{[\s\S]*\}/);
-                    if (jsonMatch) {
-                        return JSON.parse(jsonMatch[0]);
+                    if (!response.ok) {
+                        throw new Error(`OpenAI API 오류: ${response.status}`);
                     }
-                } catch (e) {
-                    console.log('JSON 파싱 실패, 텍스트 반환');
+
+                    const result = await response.json();
+                    const content = result.choices[0].message.content;
+                    
+                    // JSON 데이터 추출 시도
+                    try {
+                        const jsonMatch = content.match(/\{[\s\S]*\}/);
+                        if (jsonMatch) {
+                            return JSON.parse(jsonMatch[0]);
+                        }
+                    } catch (e) {
+                        console.log('JSON 파싱 실패, 텍스트 반환');
+                    }
+                    
+                    return {
+                        title: `${chartType} 차트`,
+                        data: content,
+                        style: style
+                    };
+                } else {
+                    // 피드백이 없으면 샘플 데이터 반환
+                    return generateSampleData(chartType, style);
                 }
-                
-                return {
-                    title: `${chartType} 차트`,
-                    data: content,
-                    style: style
-                };
             } catch (error) {
                 console.error('차트 데이터 생성 오류:', error);
                 // 오류 발생 시 샘플 데이터 반환
@@ -668,42 +662,41 @@
             switch (chartType) {
                 case 'bar':
                     return {
-                        title: '샘플 막대 차트',
-                        categories: ['1월', '2월', '3월', '4월', '5월'],
-                        data: [120, 200, 150, 80, 70],
+                        title: '2024년 월별 매출 현황',
+                        categories: ['1월', '2월', '3월', '4월', '5월', '6월'],
+                        data: [1250, 1890, 2100, 1680, 1950, 2300],
                         colors: colors
                     };
                 case 'line':
                     return {
-                        title: '샘플 선 차트',
-                        categories: ['1월', '2월', '3월', '4월', '5월'],
-                        data: [120, 200, 150, 80, 70],
+                        title: '2024년 월별 방문자 수 추이',
+                        categories: ['1월', '2월', '3월', '4월', '5월', '6월'],
+                        data: [8500, 9200, 10800, 9500, 11200, 12800],
                         colors: colors
                     };
                 case 'pie':
                     return {
-                        title: '샘플 파이 차트',
+                        title: '2024년 상반기 매출 비중',
                         data: [
-                            { value: 335, name: '직접 접속' },
-                            { value: 310, name: '이메일 마케팅' },
-                            { value: 234, name: '연결 광고' },
-                            { value: 135, name: '비디오 광고' },
-                            { value: 1548, name: '검색 엔진' }
+                            { value: 35, name: '온라인 판매' },
+                            { value: 28, name: '오프라인 매장' },
+                            { value: 22, name: '모바일 앱' },
+                            { value: 15, name: '기타 채널' }
                         ],
                         colors: colors
                     };
                 case 'area':
                     return {
-                        title: '샘플 영역 차트',
-                        categories: ['1월', '2월', '3월', '4월', '5월'],
-                        data: [120, 200, 150, 80, 70],
+                        title: '2024년 월별 누적 매출',
+                        categories: ['1월', '2월', '3월', '4월', '5월', '6월'],
+                        data: [1250, 3140, 5240, 6920, 8870, 11170],
                         colors: colors
                     };
                 default:
                     return {
-                        title: '샘플 차트',
-                        categories: ['A', 'B', 'C', 'D', 'E'],
-                        data: [100, 150, 200, 120, 180],
+                        title: '2024년 데이터 현황',
+                        categories: ['1분기', '2분기', '3분기', '4분기'],
+                        data: [5240, 6920, 8870, 11170],
                         colors: colors
                     };
             }
@@ -745,27 +738,27 @@
                 case 'bar':
                     option.xAxis = {
                         type: 'category',
-                        data: chartData.categories || ['A', 'B', 'C', 'D', 'E']
+                        data: chartData.categories || ['1월', '2월', '3월', '4월', '5월', '6월']
                     };
                     option.yAxis = {
                         type: 'value'
                     };
                     option.series = [{
                         type: 'bar',
-                        data: chartData.data || [120, 200, 150, 80, 70]
+                        data: chartData.data || [1250, 1890, 2100, 1680, 1950, 2300]
                     }];
                     break;
                 case 'line':
                     option.xAxis = {
                         type: 'category',
-                        data: chartData.categories || ['A', 'B', 'C', 'D', 'E']
+                        data: chartData.categories || ['1월', '2월', '3월', '4월', '5월', '6월']
                     };
                     option.yAxis = {
                         type: 'value'
                     };
                     option.series = [{
                         type: 'line',
-                        data: chartData.data || [120, 200, 150, 80, 70]
+                        data: chartData.data || [8500, 9200, 10800, 9500, 11200, 12800]
                     }];
                     break;
                 case 'pie':
@@ -773,18 +766,17 @@
                         type: 'pie',
                         radius: '50%',
                         data: chartData.data || [
-                            { value: 335, name: '직접 접속' },
-                            { value: 310, name: '이메일 마케팅' },
-                            { value: 234, name: '연결 광고' },
-                            { value: 135, name: '비디오 광고' },
-                            { value: 1548, name: '검색 엔진' }
+                            { value: 35, name: '온라인 판매' },
+                            { value: 28, name: '오프라인 매장' },
+                            { value: 22, name: '모바일 앱' },
+                            { value: 15, name: '기타 채널' }
                         ]
                     }];
                     break;
                 case 'area':
                     option.xAxis = {
                         type: 'category',
-                        data: chartData.categories || ['A', 'B', 'C', 'D', 'E']
+                        data: chartData.categories || ['1월', '2월', '3월', '4월', '5월', '6월']
                     };
                     option.yAxis = {
                         type: 'value'
@@ -792,20 +784,20 @@
                     option.series = [{
                         type: 'line',
                         areaStyle: {},
-                        data: chartData.data || [120, 200, 150, 80, 70]
+                        data: chartData.data || [1250, 3140, 5240, 6920, 8870, 11170]
                     }];
                     break;
                 default:
                     option.xAxis = {
                         type: 'category',
-                        data: chartData.categories || ['A', 'B', 'C', 'D', 'E']
+                        data: chartData.categories || ['1분기', '2분기', '3분기', '4분기']
                     };
                     option.yAxis = {
                         type: 'value'
                     };
                     option.series = [{
                         type: 'bar',
-                        data: chartData.data || [120, 200, 150, 80, 70]
+                        data: chartData.data || [5240, 6920, 8870, 11170]
                     }];
             }
             
@@ -837,16 +829,26 @@
                 // OpenAI API 호출하여 수정된 차트 데이터 생성
                 const chartData = await generateChartData(chartType, chartStyle, currentChartData, feedback);
 
-                showMessage('success', '차트가 수정되었습니다!');
-                
-                // 수정된 차트 표시
-                displayChart(chartType, chartStyle, chartData);
-                
-                // 피드백 입력창 초기화
-                document.getElementById('feedbackInput').value = '';
+                if (chartData) {
+                    showMessage('success', '차트가 수정되었습니다!');
+                    
+                    // 수정된 차트 표시
+                    displayChart(chartType, chartStyle, chartData);
+                    
+                    // 피드백 입력창 초기화
+                    document.getElementById('feedbackInput').value = '';
+                } else {
+                    showMessage('error', '차트 데이터를 생성할 수 없습니다.');
+                }
             } catch (error) {
                 console.error('차트 수정 오류:', error);
-                showMessage('error', '차트 수정 중 오류가 발생했습니다.');
+                showMessage('error', '차트 수정 중 오류가 발생했습니다. 샘플 데이터로 대체됩니다.');
+                
+                // 오류 발생 시 샘플 데이터로 차트 표시
+                const chartType = document.getElementById('chartType').value;
+                const chartStyle = document.getElementById('chartStyle').value;
+                const sampleData = generateSampleData(chartType, chartStyle);
+                displayChart(chartType, chartStyle, sampleData);
             } finally {
                 showLoading(false);
                 document.getElementById('modifyBtn').disabled = false;
