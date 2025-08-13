@@ -4,7 +4,69 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI 차트 생성기 - IBChart 스타일</title>
-    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <!-- IBChart 라이브러리 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <!-- IBChart 스타일 시뮬레이션을 위한 추가 스타일 -->
+    <style>
+        /* IBChart 전문적인 색상 팔레트 */
+        :root {
+            --ibchart-primary: #2E86AB;
+            --ibchart-secondary: #A23B72;
+            --ibchart-success: #F18F01;
+            --ibchart-warning: #C73E1D;
+            --ibchart-info: #6C5B7B;
+            --ibchart-light: #F8F9FA;
+            --ibchart-dark: #343A40;
+            --ibchart-mono-1: #495057;
+            --ibchart-mono-2: #6C757D;
+            --ibchart-mono-3: #ADB5BD;
+            --ibchart-mono-4: #CED4DA;
+            --ibchart-mono-5: #E9ECEF;
+        }
+        
+        /* IBChart 전문적인 차트 스타일 */
+        .ibchart-container {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            border: 1px solid #dee2e6;
+        }
+        
+        .ibchart-title {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-weight: 600;
+            color: var(--ibchart-dark);
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 18px;
+        }
+        
+        .ibchart-legend {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .ibchart-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: var(--ibchart-dark);
+        }
+        
+        .ibchart-legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+            border: 2px solid #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+    </style>
     <style>
         * {
             margin: 0;
@@ -735,162 +797,345 @@ ${fileContent.substring(0, 3000)}
             }
         }
 
-        // 샘플 데이터 생성 (API 오류 시 사용)
+        // IBChart 스타일 샘플 데이터 생성 (API 오류 시 사용)
         function generateSampleData(chartType, style) {
-            const isMonochrome = style === 'mono';
-            const colors = isMonochrome ? 
-                ['#666666', '#888888', '#aaaaaa', '#cccccc', '#eeeeee'] : 
-                ['#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de'];
-
             switch (chartType) {
                 case 'bar':
                     return {
-                        title: '2024년 월별 매출 현황',
+                        title: '2024년 월별 매출 현황 (IBChart 스타일)',
                         categories: ['1월', '2월', '3월', '4월', '5월', '6월'],
-                        data: [1250, 1890, 2100, 1680, 1950, 2300],
-                        colors: colors
+                        data: [1250, 1890, 2100, 1680, 1950, 2300]
                     };
                 case 'line':
                     return {
-                        title: '2024년 월별 방문자 수 추이',
+                        title: '2024년 월별 방문자 수 추이 (IBChart 스타일)',
                         categories: ['1월', '2월', '3월', '4월', '5월', '6월'],
-                        data: [8500, 9200, 10800, 9500, 11200, 12800],
-                        colors: colors
+                        data: [8500, 9200, 10800, 9500, 11200, 12800]
                     };
                 case 'pie':
                     return {
-                        title: '2024년 상반기 매출 비중',
+                        title: '2024년 상반기 매출 비중 (IBChart 스타일)',
                         data: [
                             { value: 35, name: '온라인 판매' },
                             { value: 28, name: '오프라인 매장' },
                             { value: 22, name: '모바일 앱' },
                             { value: 15, name: '기타 채널' }
-                        ],
-                        colors: colors
+                        ]
                     };
                 case 'area':
                     return {
-                        title: '2024년 월별 누적 매출',
+                        title: '2024년 월별 누적 매출 (IBChart 스타일)',
                         categories: ['1월', '2월', '3월', '4월', '5월', '6월'],
-                        data: [1250, 3140, 5240, 6920, 8870, 11170],
-                        colors: colors
+                        data: [1250, 3140, 5240, 6920, 8870, 11170]
                     };
                 default:
                     return {
-                        title: '2024년 데이터 현황',
+                        title: '2024년 데이터 현황 (IBChart 스타일)',
                         categories: ['1분기', '2분기', '3분기', '4분기'],
-                        data: [5240, 6920, 8870, 11170],
-                        colors: colors
+                        data: [5240, 6920, 8870, 11170]
                     };
             }
         }
 
-        // 차트 표시 함수
+        // IBChart 스타일 차트 표시 함수
         function displayChart(chartType, style, chartData) {
             const chartContainer = document.getElementById('chartContainer');
             
             // 기존 차트 제거
             if (myChart) {
-                myChart.dispose();
+                myChart.destroy();
             }
             
-            // 차트 초기화
-            myChart = echarts.init(chartContainer);
+            // IBChart 스타일 색상 팔레트
+            const ibchartColors = style === 'mono' ? [
+                'var(--ibchart-mono-1)',
+                'var(--ibchart-mono-2)', 
+                'var(--ibchart-mono-3)',
+                'var(--ibchart-mono-4)',
+                'var(--ibchart-mono-5)'
+            ] : [
+                'var(--ibchart-primary)',
+                'var(--ibchart-secondary)',
+                'var(--ibchart-success)',
+                'var(--ibchart-warning)',
+                'var(--ibchart-info)'
+            ];
             
-            let option = {
-                title: {
-                    text: chartData.title || 'AI 생성 차트',
-                    left: 'center',
-                    textStyle: {
-                        color: '#333',
-                        fontSize: 18
-                    }
-                },
-                tooltip: {
-                    trigger: 'axis'
-                },
-                legend: {
-                    orient: 'vertical',
-                    left: 'left'
-                },
-                color: chartData.colors || ['#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de']
-            };
-
-            // 차트 타입에 따른 설정
+            // 차트 컨테이너 스타일 적용
+            chartContainer.innerHTML = `
+                <div class="ibchart-container">
+                    <div class="ibchart-title">${chartData.title || 'AI 생성 차트'}</div>
+                    <canvas id="ibchartCanvas" width="800" height="400"></canvas>
+                    <div class="ibchart-legend" id="ibchartLegend"></div>
+                </div>
+            `;
+            
+            const canvas = document.getElementById('ibchartCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            // 차트 데이터 준비
+            let chartConfig = {};
+            
             switch (chartType) {
                 case 'bar':
-                    option.xAxis = {
-                        type: 'category',
-                        data: chartData.categories || ['1월', '2월', '3월', '4월', '5월', '6월']
-                    };
-                    option.yAxis = {
-                        type: 'value'
-                    };
-                    option.series = [{
+                    chartConfig = {
                         type: 'bar',
-                        data: chartData.data || [1250, 1890, 2100, 1680, 1950, 2300]
-                    }];
+                        data: {
+                            labels: chartData.categories || ['1월', '2월', '3월', '4월', '5월', '6월'],
+                            datasets: [{
+                                label: chartData.title || '데이터',
+                                data: chartData.data || [1250, 1890, 2100, 1680, 1950, 2300],
+                                backgroundColor: ibchartColors.slice(0, chartData.data?.length || 6),
+                                borderColor: ibchartColors.slice(0, chartData.data?.length || 6),
+                                borderWidth: 2,
+                                borderRadius: 6,
+                                borderSkipped: false
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    display: false
+                                },
+                                title: {
+                                    display: false
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    grid: {
+                                        color: 'rgba(0,0,0,0.1)',
+                                        drawBorder: false
+                                    },
+                                    ticks: {
+                                        color: 'var(--ibchart-dark)',
+                                        font: {
+                                            size: 12,
+                                            weight: '500'
+                                        }
+                                    }
+                                },
+                                x: {
+                                    grid: {
+                                        display: false
+                                    },
+                                    ticks: {
+                                        color: 'var(--ibchart-dark)',
+                                        font: {
+                                            size: 12,
+                                            weight: '500'
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    };
                     break;
+                    
                 case 'line':
-                    option.xAxis = {
-                        type: 'category',
-                        data: chartData.categories || ['1월', '2월', '3월', '4월', '5월', '6월']
-                    };
-                    option.yAxis = {
-                        type: 'value'
-                    };
-                    option.series = [{
+                    chartConfig = {
                         type: 'line',
-                        data: chartData.data || [8500, 9200, 10800, 9500, 11200, 12800]
-                    }];
+                        data: {
+                            labels: chartData.categories || ['1월', '2월', '3월', '4월', '5월', '6월'],
+                            datasets: [{
+                                label: chartData.title || '데이터',
+                                data: chartData.data || [8500, 9200, 10800, 9500, 11200, 12800],
+                                borderColor: 'var(--ibchart-primary)',
+                                backgroundColor: 'rgba(46, 134, 171, 0.1)',
+                                borderWidth: 3,
+                                fill: true,
+                                tension: 0.4,
+                                pointBackgroundColor: 'var(--ibchart-primary)',
+                                pointBorderColor: '#fff',
+                                pointBorderWidth: 2,
+                                pointRadius: 6,
+                                pointHoverRadius: 8
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    display: false
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    grid: {
+                                        color: 'rgba(0,0,0,0.1)',
+                                        drawBorder: false
+                                    },
+                                    ticks: {
+                                        color: 'var(--ibchart-dark)',
+                                        font: { size: 12, weight: '500' }
+                                    }
+                                },
+                                x: {
+                                    grid: {
+                                        display: false
+                                    },
+                                    ticks: {
+                                        color: 'var(--ibchart-dark)',
+                                        font: { size: 12, weight: '500' }
+                                    }
+                                }
+                            }
+                        }
+                    };
                     break;
+                    
                 case 'pie':
-                    option.series = [{
+                    chartConfig = {
                         type: 'pie',
-                        radius: '50%',
-                        data: chartData.data || [
-                            { value: 35, name: '온라인 판매' },
-                            { value: 28, name: '오프라인 매장' },
-                            { value: 22, name: '모바일 앱' },
-                            { value: 15, name: '기타 채널' }
-                        ]
-                    }];
+                        data: {
+                            labels: chartData.data?.map(item => item.name) || ['온라인 판매', '오프라인 매장', '모바일 앱', '기타 채널'],
+                            datasets: [{
+                                data: chartData.data?.map(item => item.value) || [35, 28, 22, 15],
+                                backgroundColor: ibchartColors.slice(0, chartData.data?.length || 4),
+                                borderColor: '#fff',
+                                borderWidth: 3,
+                                borderRadius: 8,
+                                hoverOffset: 15
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    display: false
+                                }
+                            }
+                        }
+                    };
                     break;
+                    
                 case 'area':
-                    option.xAxis = {
-                        type: 'category',
-                        data: chartData.categories || ['1월', '2월', '3월', '4월', '5월', '6월']
-                    };
-                    option.yAxis = {
-                        type: 'value'
-                    };
-                    option.series = [{
+                    chartConfig = {
                         type: 'line',
-                        areaStyle: {},
-                        data: chartData.data || [1250, 3140, 5240, 6920, 8870, 11170]
-                    }];
+                        data: {
+                            labels: chartData.categories || ['1월', '2월', '3월', '4월', '5월', '6월'],
+                            datasets: [{
+                                label: chartData.title || '누적 데이터',
+                                data: chartData.data || [1250, 3140, 5240, 6920, 8870, 11170],
+                                borderColor: 'var(--ibchart-secondary)',
+                                backgroundColor: 'rgba(162, 59, 114, 0.2)',
+                                borderWidth: 3,
+                                fill: true,
+                                tension: 0.4,
+                                pointBackgroundColor: 'var(--ibchart-secondary)',
+                                pointBorderColor: '#fff',
+                                pointBorderWidth: 2,
+                                pointRadius: 6
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    display: false
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    grid: {
+                                        color: 'rgba(0,0,0,0.1)',
+                                        drawBorder: false
+                                    },
+                                    ticks: {
+                                        color: 'var(--ibchart-dark)',
+                                        font: { size: 12, weight: '500' }
+                                    }
+                                },
+                                x: {
+                                    grid: {
+                                        display: false
+                                    },
+                                    ticks: {
+                                        color: 'var(--ibchart-dark)',
+                                        font: { size: 12, weight: '500' }
+                                    }
+                                }
+                            }
+                        }
+                    };
                     break;
+                    
                 default:
-                    option.xAxis = {
-                        type: 'category',
-                        data: chartData.categories || ['1분기', '2분기', '3분기', '4분기']
-                    };
-                    option.yAxis = {
-                        type: 'value'
-                    };
-                    option.series = [{
+                    chartConfig = {
                         type: 'bar',
-                        data: chartData.data || [5240, 6920, 8870, 11170]
-                    }];
+                        data: {
+                            labels: chartData.categories || ['1분기', '2분기', '3분기', '4분기'],
+                            datasets: [{
+                                label: chartData.title || '데이터',
+                                data: chartData.data || [5240, 6920, 8870, 11170],
+                                backgroundColor: ibchartColors.slice(0, chartData.data?.length || 4),
+                                borderColor: ibchartColors.slice(0, chartData.data?.length || 4),
+                                borderWidth: 2,
+                                borderRadius: 6
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    grid: { color: 'rgba(0,0,0,0.1)' },
+                                    ticks: { color: 'var(--ibchart-dark)', font: { size: 12, weight: '500' } }
+                                },
+                                x: {
+                                    grid: { display: false },
+                                    ticks: { color: 'var(--ibchart-dark)', font: { size: 12, weight: '500' } }
+                                }
+                            }
+                        }
+                    };
             }
             
-            // 차트 렌더링
-            myChart.setOption(option);
+            // IBChart 스타일 차트 생성
+            myChart = new Chart(ctx, chartConfig);
             
-            // 반응형 처리
-            window.addEventListener('resize', function() {
-                myChart.resize();
-            });
+            // 범례 생성
+            createIBChartLegend(chartData, ibchartColors, chartType);
+        }
+        
+        // IBChart 스타일 범례 생성
+        function createIBChartLegend(chartData, colors, chartType) {
+            const legendContainer = document.getElementById('ibchartLegend');
+            let legendHTML = '';
+            
+            if (chartType === 'pie' && chartData.data) {
+                chartData.data.forEach((item, index) => {
+                    legendHTML += `
+                        <div class="ibchart-legend-item">
+                            <div class="ibchart-legend-color" style="background-color: ${colors[index % colors.length]}"></div>
+                            <span>${item.name}: ${item.value}%</span>
+                        </div>
+                    `;
+                });
+            } else if (chartData.categories) {
+                chartData.categories.forEach((category, index) => {
+                    legendHTML += `
+                        <div class="ibchart-legend-item">
+                            <div class="ibchart-legend-color" style="background-color: ${colors[index % colors.length]}"></div>
+                            <span>${category}</span>
+                        </div>
+                    `;
+                });
+            }
+            
+            legendContainer.innerHTML = legendHTML;
         }
 
         // 차트 수정 함수
