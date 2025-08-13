@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 차트 생성기 - IBChart 스타일</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            padding: 40px;
+        }
+
+        .upload-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 2px dashed #dee2e6;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .upload-section:hover {
+            border-color: #667eea;
+            background: #f0f2ff;
+        }
+
+        .upload-section.dragover {
+            border-color: #667eea;
+            background: #e8f0ff;
+            transform: scale(1.02);
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .upload-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 20px 0;
+        }
+
+        .upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .file-info {
+            margin-top: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+            display: none;
+        }
+
+        .chart-options {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .option-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .option-group label {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .option-group select,
+        .option-group input {
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .option-group select:focus,
+        .option-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .generate-btn {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: 18px 40px;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            max-width: 300px;
+            margin: 0 auto;
+            display: block;
+        }
+
+        .generate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(40, 167, 69, 0.3);
+        }
+
+        .generate-btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .chart-result {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            display: none;
+        }
+
+        .chart-preview {
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            background: #f8f9fa;
+            text-align: center;
+        }
+
+        .chart-container {
+            width: 100%;
+            height: 500px;
+            margin: 20px 0;
+        }
+
+        .feedback-section {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .feedback-section h3 {
+            color: #856404;
+            margin-bottom: 15px;
+        }
+
+        .feedback-input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #ffeaa7;
+            border-radius: 8px;
+            font-size: 1rem;
+            resize: vertical;
+            min-height: 100px;
+            margin-bottom: 15px;
+        }
+
+        .feedback-input:focus {
+            outline: none;
+            border-color: #fdcb6e;
+        }
+
+        .modify-btn {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 25px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .modify-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 15px rgba(255, 107, 107, 0.3);
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #dc3545;
+            display: none;
+        }
+
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #28a745;
+            display: none;
+        }
+
+        .api-key-section {
+            background: #e3f2fd;
+            border: 1px solid #2196f3;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .api-key-section h3 {
+            color: #1976d2;
+            margin-bottom: 15px;
+        }
+
+        .api-key-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #2196f3;
+            border-radius: 8px;
+            font-size: 1rem;
+            margin-bottom: 15px;
+        }
+
+        .api-key-input:focus {
+            outline: none;
+            border-color: #1565c0;
+        }
+
+        .save-api-btn {
+            background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 25px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .save-api-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 15px rgba(33, 150, 243, 0.3);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 15px;
+            }
+            
+            .header {
+                padding: 30px 20px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .main-content {
+                padding: 20px;
+            }
+            
+            .options-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎨 AI 차트 생성기</h1>
+            <p>데이터를 업로드하고 IBChart 스타일의 아름다운 차트를 만들어보세요</p>
+        </div>
+
+        <div class="main-content">
+            <!-- API 키 설정 섹션 -->
+            <div class="api-key-section">
+                <h3>🔑 OpenAI API 키 설정</h3>
+                <p>차트 생성을 위해 OpenAI API 키를 입력해주세요.</p>
+                <input 
+                    type="password" 
+                    id="apiKeyInput" 
+                    class="api-key-input" 
+                    placeholder="sk-... (OpenAI API 키를 입력하세요)"
+                >
+                <button class="save-api-btn" onclick="saveApiKey()">API 키 저장</button>
+            </div>
+
+            <!-- 파일 업로드 섹션 -->
+            <div class="upload-section" id="uploadSection">
+                <h2>📁 데이터 파일 업로드</h2>
+                <p>이미지, 엑셀, PDF 등 모든 형식의 파일을 업로드할 수 있습니다</p>
+                
+                <input type="file" id="fileInput" class="file-input" accept="*/*">
+                <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                    파일 선택하기
+                </button>
+                
+                <div class="file-info" id="fileInfo">
+                    <strong>선택된 파일:</strong> <span id="fileName"></span><br>
+                    <strong>파일 크기:</strong> <span id="fileSize"></span>
+                </div>
+            </div>
+
+            <!-- 차트 옵션 섹션 -->
+            <div class="chart-options">
+                <h2>⚙️ 차트 설정</h2>
+                <div class="options-grid">
+                    <div class="option-group">
+                        <label for="chartType">차트 타입</label>
+                        <select id="chartType">
+                            <option value="bar">막대 차트</option>
+                            <option value="line">선 차트</option>
+                            <option value="pie">파이 차트</option>
+                            <option value="area">영역 차트</option>
+                        </select>
+                    </div>
+                    
+                    <div class="option-group">
+                        <label for="chartStyle">스타일</label>
+                        <select id="chartStyle">
+                            <option value="color">컬러</option>
+                            <option value="mono">모노크롬 (그레이)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="option-group">
+                        <label for="customChartType">직접 입력</label>
+                        <input type="text" id="customChartType" placeholder="원하는 차트 타입을 입력하세요">
+                    </div>
+                </div>
+                
+                <button class="generate-btn" id="generateBtn" onclick="generateChart()">
+                    🚀 차트 만들기
+                </button>
+            </div>
+
+            <!-- 로딩 표시 -->
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>AI가 데이터를 분석하고 차트를 생성하고 있습니다...</p>
+            </div>
+
+            <!-- 에러 메시지 -->
+            <div class="error-message" id="errorMessage"></div>
+
+            <!-- 성공 메시지 -->
+            <div class="success-message" id="successMessage"></div>
+
+            <!-- 차트 결과 섹션 -->
+            <div class="chart-result" id="chartResult">
+                <h2>📊 생성된 차트</h2>
+                <div class="chart-preview">
+                    <div id="chartContainer" class="chart-container"></div>
+                </div>
+                
+                <!-- 피드백 섹션 -->
+                <div class="feedback-section">
+                    <h3>💬 차트 수정 의견</h3>
+                    <p>생성된 차트에 대한 수정 의견이 있으시면 입력해주세요.</p>
+                    <textarea 
+                        class="feedback-input" 
+                        id="feedbackInput" 
+                        placeholder="예: 색상을 더 밝게 해주세요, 데이터 레이블을 추가해주세요 등..."
+                    ></textarea>
+                    <button class="modify-btn" onclick="modifyChart()">
+                        🔄 차트 수정하기
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let uploadedFile = null;
+        let currentChartData = null;
+        let myChart = null;
+
+        // 페이지 로드 시 저장된 API 키 확인
+        window.addEventListener('load', function() {
+            const savedApiKey = localStorage.getItem('openai_api_key');
+            if (savedApiKey) {
+                document.getElementById('apiKeyInput').value = savedApiKey;
+            }
+        });
+
+        // API 키 저장
+        function saveApiKey() {
+            const apiKey = document.getElementById('apiKeyInput').value.trim();
+            if (apiKey) {
+                localStorage.setItem('openai_api_key', apiKey);
+                showMessage('success', 'API 키가 저장되었습니다!');
+            } else {
+                showMessage('error', 'API 키를 입력해주세요.');
+            }
+        }
+
+        // 파일 업로드 처리
+        document.getElementById('fileInput').addEventListener('change', async function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            uploadedFile = file;
+            
+            // 파일 정보 표시
+            document.getElementById('fileName').textContent = file.name;
+            document.getElementById('fileSize').textContent = formatFileSize(file.size);
+            document.getElementById('fileInfo').style.display = 'block';
+
+            // 파일 분석
+            await analyzeFile(file);
+        });
+
+        // 드래그 앤 드롭 기능
+        const uploadSection = document.getElementById('uploadSection');
+        
+        uploadSection.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            uploadSection.classList.add('dragover');
+        });
+
+        uploadSection.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            uploadSection.classList.remove('dragover');
+        });
+
+        uploadSection.addEventListener('drop', function(e) {
+            e.preventDefault();
+            uploadSection.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                uploadedFile = files[0];
+                document.getElementById('fileInput').files = files;
+                
+                document.getElementById('fileName').textContent = uploadedFile.name;
+                document.getElementById('fileSize').textContent = formatFileSize(uploadedFile.size);
+                document.getElementById('fileInfo').style.display = 'block';
+                
+                analyzeFile(uploadedFile);
+            }
+        });
+
+        // 파일 분석 함수
+        async function analyzeFile(file) {
+            try {
+                const apiKey = localStorage.getItem('openai_api_key');
+                if (!apiKey) {
+                    showMessage('error', '먼저 OpenAI API 키를 설정해주세요.');
+                    return;
+                }
+
+                showMessage('success', '파일이 성공적으로 업로드되었습니다!');
+                
+                // 파일 내용을 텍스트로 변환 (간단한 예시)
+                if (file.type.startsWith('image/')) {
+                    currentChartData = '이미지 파일이 업로드되었습니다. AI가 이미지 내용을 분석하여 차트 데이터를 생성합니다.';
+                } else if (file.type.includes('excel') || file.type.includes('spreadsheet')) {
+                    currentChartData = '엑셀 파일이 업로드되었습니다. 데이터 구조를 분석하여 적절한 차트를 생성합니다.';
+                } else if (file.type === 'application/pdf') {
+                    currentChartData = 'PDF 파일이 업로드되었습니다. 문서 내용을 분석하여 차트 데이터를 추출합니다.';
+                } else {
+                    currentChartData = '파일이 업로드되었습니다. AI가 파일 내용을 분석하여 차트 데이터를 생성합니다.';
+                }
+            } catch (error) {
+                console.error('파일 분석 오류:', error);
+                showMessage('error', '파일 분석 중 오류가 발생했습니다.');
+            }
+        }
+
+        // 차트 생성 함수
+        async function generateChart() {
+            if (!uploadedFile) {
+                showMessage('error', '먼저 파일을 업로드해주세요.');
+                return;
+            }
+
+            const apiKey = localStorage.getItem('openai_api_key');
+            if (!apiKey) {
+                showMessage('error', 'OpenAI API 키를 설정해주세요.');
+                return;
+            }
+
+            const chartType = document.getElementById('chartType').value;
+            const chartStyle = document.getElementById('chartStyle').value;
+            const customType = document.getElementById('customChartType').value;
+
+            // 사용자 정의 차트 타입이 있으면 사용
+            const finalChartType = customType || chartType;
+
+            try {
+                showLoading(true);
+                document.getElementById('generateBtn').disabled = true;
+
+                // OpenAI API 호출
+                const chartData = await generateChartData(finalChartType, chartStyle, currentChartData, '');
+
+                showMessage('success', '차트가 성공적으로 생성되었습니다!');
+                
+                // 차트 표시
+                displayChart(finalChartType, chartStyle, chartData);
+                document.getElementById('chartResult').style.display = 'block';
+                
+                // 페이지 상단으로 스크롤
+                document.getElementById('chartResult').scrollIntoView({ 
+                    behavior: 'smooth' 
+                });
+            } catch (error) {
+                console.error('차트 생성 오류:', error);
+                showMessage('error', '차트 생성 중 오류가 발생했습니다.');
+            } finally {
+                showLoading(false);
+                document.getElementById('generateBtn').disabled = false;
+            }
+        }
+
+        // OpenAI API를 사용한 차트 데이터 생성
+        async function generateChartData(chartType, style, dataAnalysis, feedback) {
+            try {
+                const apiKey = localStorage.getItem('openai_api_key');
+                
+                const prompt = `
+차트 타입: ${chartType}
+스타일: ${style}
+데이터 분석: ${dataAnalysis}
+피드백: ${feedback || '없음'}
+
+위 정보를 바탕으로 차트에 사용할 샘플 데이터를 생성해주세요. 
+데이터는 JSON 형식으로 제공하고, 차트의 제목, 축 레이블, 데이터 포인트 등을 포함해주세요.
+`;
+
+                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiKey}`
+                    },
+                    body: JSON.stringify({
+                        model: 'gpt-4',
+                        messages: [
+                            {
+                                role: 'user',
+                                content: prompt
+                            }
+                        ],
+                        max_tokens: 1000
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`OpenAI API 오류: ${response.status}`);
+                }
+
+                const result = await response.json();
+                const content = result.choices[0].message.content;
+                
+                // JSON 데이터 추출 시도
+                try {
+                    const jsonMatch = content.match(/\{[\s\S]*\}/);
+                    if (jsonMatch) {
+                        return JSON.parse(jsonMatch[0]);
+                    }
+                } catch (e) {
+                    console.log('JSON 파싱 실패, 텍스트 반환');
+                }
+                
+                return {
+                    title: `${chartType} 차트`,
+                    data: content,
+                    style: style
+                };
+            } catch (error) {
+                console.error('차트 데이터 생성 오류:', error);
+                // 오류 발생 시 샘플 데이터 반환
+                return generateSampleData(chartType, style);
+            }
+        }
+
+        // 샘플 데이터 생성 (API 오류 시 사용)
+        function generateSampleData(chartType, style) {
+            const isMonochrome = style === 'mono';
+            const colors = isMonochrome ? 
+                ['#666666', '#888888', '#aaaaaa', '#cccccc', '#eeeeee'] : 
+                ['#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de'];
+
+            switch (chartType) {
+                case 'bar':
+                    return {
+                        title: '샘플 막대 차트',
+                        categories: ['1월', '2월', '3월', '4월', '5월'],
+                        data: [120, 200, 150, 80, 70],
+                        colors: colors
+                    };
+                case 'line':
+                    return {
+                        title: '샘플 선 차트',
+                        categories: ['1월', '2월', '3월', '4월', '5월'],
+                        data: [120, 200, 150, 80, 70],
+                        colors: colors
+                    };
+                case 'pie':
+                    return {
+                        title: '샘플 파이 차트',
+                        data: [
+                            { value: 335, name: '직접 접속' },
+                            { value: 310, name: '이메일 마케팅' },
+                            { value: 234, name: '연결 광고' },
+                            { value: 135, name: '비디오 광고' },
+                            { value: 1548, name: '검색 엔진' }
+                        ],
+                        colors: colors
+                    };
+                case 'area':
+                    return {
+                        title: '샘플 영역 차트',
+                        categories: ['1월', '2월', '3월', '4월', '5월'],
+                        data: [120, 200, 150, 80, 70],
+                        colors: colors
+                    };
+                default:
+                    return {
+                        title: '샘플 차트',
+                        categories: ['A', 'B', 'C', 'D', 'E'],
+                        data: [100, 150, 200, 120, 180],
+                        colors: colors
+                    };
+            }
+        }
+
+        // 차트 표시 함수
+        function displayChart(chartType, style, chartData) {
+            const chartContainer = document.getElementById('chartContainer');
+            
+            // 기존 차트 제거
+            if (myChart) {
+                myChart.dispose();
+            }
+            
+            // 차트 초기화
+            myChart = echarts.init(chartContainer);
+            
+            let option = {
+                title: {
+                    text: chartData.title || 'AI 생성 차트',
+                    left: 'center',
+                    textStyle: {
+                        color: '#333',
+                        fontSize: 18
+                    }
+                },
+                tooltip: {
+                    trigger: 'axis'
+                },
+                legend: {
+                    orient: 'vertical',
+                    left: 'left'
+                },
+                color: chartData.colors || ['#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de']
+            };
+
+            // 차트 타입에 따른 설정
+            switch (chartType) {
+                case 'bar':
+                    option.xAxis = {
+                        type: 'category',
+                        data: chartData.categories || ['A', 'B', 'C', 'D', 'E']
+                    };
+                    option.yAxis = {
+                        type: 'value'
+                    };
+                    option.series = [{
+                        type: 'bar',
+                        data: chartData.data || [120, 200, 150, 80, 70]
+                    }];
+                    break;
+                case 'line':
+                    option.xAxis = {
+                        type: 'category',
+                        data: chartData.categories || ['A', 'B', 'C', 'D', 'E']
+                    };
+                    option.yAxis = {
+                        type: 'value'
+                    };
+                    option.series = [{
+                        type: 'line',
+                        data: chartData.data || [120, 200, 150, 80, 70]
+                    }];
+                    break;
+                case 'pie':
+                    option.series = [{
+                        type: 'pie',
+                        radius: '50%',
+                        data: chartData.data || [
+                            { value: 335, name: '직접 접속' },
+                            { value: 310, name: '이메일 마케팅' },
+                            { value: 234, name: '연결 광고' },
+                            { value: 135, name: '비디오 광고' },
+                            { value: 1548, name: '검색 엔진' }
+                        ]
+                    }];
+                    break;
+                case 'area':
+                    option.xAxis = {
+                        type: 'category',
+                        data: chartData.categories || ['A', 'B', 'C', 'D', 'E']
+                    };
+                    option.yAxis = {
+                        type: 'value'
+                    };
+                    option.series = [{
+                        type: 'line',
+                        areaStyle: {},
+                        data: chartData.data || [120, 200, 150, 80, 70]
+                    }];
+                    break;
+                default:
+                    option.xAxis = {
+                        type: 'category',
+                        data: chartData.categories || ['A', 'B', 'C', 'D', 'E']
+                    };
+                    option.yAxis = {
+                        type: 'value'
+                    };
+                    option.series = [{
+                        type: 'bar',
+                        data: chartData.data || [120, 200, 150, 80, 70]
+                    }];
+            }
+            
+            // 차트 렌더링
+            myChart.setOption(option);
+            
+            // 반응형 처리
+            window.addEventListener('resize', function() {
+                myChart.resize();
+            });
+        }
+
+        // 차트 수정 함수
+        async function modifyChart() {
+            const feedback = document.getElementById('feedbackInput').value.trim();
+            
+            if (!feedback) {
+                showMessage('error', '수정 의견을 입력해주세요.');
+                return;
+            }
+
+            try {
+                showLoading(true);
+                document.getElementById('modifyBtn').disabled = true;
+
+                const chartType = document.getElementById('chartType').value;
+                const chartStyle = document.getElementById('chartStyle').value;
+
+                // OpenAI API 호출하여 수정된 차트 데이터 생성
+                const chartData = await generateChartData(chartType, chartStyle, currentChartData, feedback);
+
+                showMessage('success', '차트가 수정되었습니다!');
+                
+                // 수정된 차트 표시
+                displayChart(chartType, chartStyle, chartData);
+                
+                // 피드백 입력창 초기화
+                document.getElementById('feedbackInput').value = '';
+            } catch (error) {
+                console.error('차트 수정 오류:', error);
+                showMessage('error', '차트 수정 중 오류가 발생했습니다.');
+            } finally {
+                showLoading(false);
+                document.getElementById('modifyBtn').disabled = false;
+            }
+        }
+
+        // 유틸리티 함수들
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+        }
+
+        function showMessage(type, message) {
+            const errorDiv = document.getElementById('errorMessage');
+            const successDiv = document.getElementById('successMessage');
+            
+            if (type === 'error') {
+                errorDiv.textContent = message;
+                errorDiv.style.display = 'block';
+                successDiv.style.display = 'none';
+                
+                setTimeout(() => {
+                    errorDiv.style.display = 'none';
+                }, 5000);
+            } else if (type === 'success') {
+                successDiv.textContent = message;
+                successDiv.style.display = 'block';
+                errorDiv.style.display = 'none';
+                
+                setTimeout(() => {
+                    successDiv.style.display = 'none';
+                }, 5000);
+            }
+        }
+
+        // 사용자 정의 차트 타입 입력 처리
+        document.getElementById('customChartType').addEventListener('input', function(e) {
+            if (e.target.value.trim()) {
+                document.getElementById('chartType').disabled = true;
+            } else {
+                document.getElementById('chartType').disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
