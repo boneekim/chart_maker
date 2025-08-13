@@ -50,48 +50,7 @@
             padding: 40px;
         }
 
-        .api-key-section {
-            background: #e3f2fd;
-            border: 1px solid #2196f3;
-            border-radius: 10px;
-            padding: 20px;
-            margin: 20px 0;
-        }
 
-        .api-key-section h3 {
-            color: #1976d2;
-            margin-bottom: 15px;
-        }
-
-        .api-key-input {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #2196f3;
-            border-radius: 8px;
-            font-size: 1rem;
-            margin-bottom: 15px;
-        }
-
-        .api-key-input:focus {
-            outline: none;
-            border-color: #1565c0;
-        }
-
-        .save-api-btn {
-            background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 25px;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .save-api-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 15px rgba(33, 150, 243, 0.3);
-        }
 
         .upload-section {
             background: #f8f9fa;
@@ -355,11 +314,7 @@
         </div>
 
         <div class="main-content">
-            <!-- API 키 설정 완료 알림 -->
-            <div class="api-key-section" style="display: none;">
-                <h3>✅ OpenAI API 키 설정 완료</h3>
-                <p>API 키가 자동으로 설정되었습니다. 이제 차트 생성을 시작할 수 있습니다.</p>
-            </div>
+
 
             <!-- 파일 업로드 섹션 -->
             <div class="upload-section" id="uploadSection">
@@ -454,15 +409,9 @@
         // 고정된 OpenAI API 키
         const OPENAI_API_KEY = 'AIzaSyArO2ryXxHrAdljrLxoKSMSTKHSMnCDw4s';
 
-        // API 키 저장 (로컬 스토리지에 저장)
-        function saveApiKey() {
-            localStorage.setItem('openai_api_key', OPENAI_API_KEY);
-            showMessage('success', 'API 키가 설정되었습니다!');
-        }
-
         // 페이지 로드 시 API 키 자동 설정
         window.addEventListener('load', function() {
-            saveApiKey();
+            localStorage.setItem('openai_api_key', OPENAI_API_KEY);
         });
 
         // 파일 업로드 처리
